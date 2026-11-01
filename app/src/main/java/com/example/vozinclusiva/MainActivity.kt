@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,6 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.vozinclusiva.data.local.AppDatabase
+import com.example.vozinclusiva.data.local.dao.UserDao
+import com.example.vozinclusiva.data.local.model.User
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {

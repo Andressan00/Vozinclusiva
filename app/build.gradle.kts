@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.persistence"
+    namespace = "com.example.vozinclusiva"
     compileSdk = 35
 
     defaultConfig {

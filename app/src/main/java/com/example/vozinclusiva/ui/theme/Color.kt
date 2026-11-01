@@ -1,4 +1,4 @@
-package com.example.persistence.ui.theme
+package com.example.vozinclusiva.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

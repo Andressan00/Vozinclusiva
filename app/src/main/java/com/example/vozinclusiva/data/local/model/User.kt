@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva.data.local.model
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

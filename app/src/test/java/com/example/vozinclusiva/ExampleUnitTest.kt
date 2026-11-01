@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva
 
 import org.junit.Test
 
