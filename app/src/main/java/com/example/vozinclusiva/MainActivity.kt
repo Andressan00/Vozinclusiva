@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

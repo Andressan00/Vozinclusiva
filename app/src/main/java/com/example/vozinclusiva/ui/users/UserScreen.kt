@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -24,9 +24,14 @@ fun UserScreen(
 ) {
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") } // Estado para la clave
-    val userList by userDao.getAllUsers().collectAsState(initial = emptyList())
+    var password by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+    var isError by remember { mutableStateOf(false) }
+
     val coroutineScope = rememberCoroutineScope()
+
+    val userList by userDao.getAllUsers()
+        .collectAsState(initial = emptyList())
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -41,14 +46,26 @@ fun UserScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { onBackClick() }
             ) {
-                Text(text = "◀", fontSize = 18.sp, color = Color(0xFF0080F0))
+                Text(
+                    text = "◀",
+                    fontSize = 18.sp,
+                    color = Color(0xFF0080F0)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Volver", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0080F0))
+                Text(
+                    text = "Volver",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0080F0)
+                )
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(text = "Registro de Nuevo Usuario", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = "Registro de Nuevo Usuario",
+                style = MaterialTheme.typography.titleLarge
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -56,6 +73,7 @@ fun UserScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nombre") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -65,6 +83,7 @@ fun UserScreen(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo Electrónico") },
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -73,8 +92,9 @@ fun UserScreen(
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña (Clave)") },
+                label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -82,12 +102,33 @@ fun UserScreen(
 
             Button(
                 onClick = {
-                    if (name.isNotBlank() && email.isNotBlank() && password.isNotBlank()) {
+                    if (
+                        name.isBlank() ||
+                        email.isBlank() ||
+                        password.isBlank()
+                    ) {
+                        isError = true
+                        message = "Completa todos los campos"
+                    } else {
                         coroutineScope.launch {
-                            userDao.insertUser(User(name = name, email = email, password = password))
-                            name = ""
-                            email = ""
-                            password = ""
+                            try {
+                                userDao.insertUser(
+                                    User(
+                                        name = name.trim(),
+                                        email = email.trim(),
+                                        password = password
+                                    )
+                                )
+
+                                name = ""
+                                email = ""
+                                password = ""
+                                isError = false
+                                message = "Usuario registrado correctamente"
+                            } catch (e: Exception) {
+                                isError = true
+                                message = "No se pudo guardar el usuario: ${e.localizedMessage}"
+                            }
                         }
                     }
                 },
@@ -96,18 +137,48 @@ fun UserScreen(
                 Text("Guardar Usuario")
             }
 
+            if (message.isNotBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = message,
+                    color = if (isError) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        Color(0xFF16803D)
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(text = "Usuarios Registrados:", style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = "Usuarios Registrados:",
+                style = MaterialTheme.typography.titleMedium
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            LazyColumn {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
                 items(userList) { user ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(text = "Nombre: ${user.name}", style = MaterialTheme.typography.bodyLarge)
-                            Text(text = "Correo: ${user.email}", style = MaterialTheme.typography.bodyMedium)
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            Text(
+                                text = "Nombre: ${user.name}",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Text(
+                                text = "Correo: ${user.email}",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 }

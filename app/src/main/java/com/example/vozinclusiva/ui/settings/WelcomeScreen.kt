@@ -1,4 +1,4 @@
-package com.example.persistence
+package com.example.vozinclusiva
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
