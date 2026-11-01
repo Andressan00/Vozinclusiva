@@ -1,23 +1,25 @@
-package com.example.vozinclusiva
+package com.example.persistence
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.vozinclusiva.DetailScreen
+import com.example.vozinclusiva.MenuScreen
 import com.example.vozinclusiva.data.local.AppDatabase
 import com.example.vozinclusiva.data.local.dao.UserDao
-import com.example.vozinclusiva.data.local.model.User
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         val db = AppDatabase.getDatabase(this)
         val userDao = db.userDao()
 
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    UserScreen(userDao)
+                    AppNavigation(userDao)
                 }
             }
         }
@@ -35,79 +37,65 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun UserScreen(userDao: UserDao) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    val userList by userDao.getAllUsers().collectAsState(initial = emptyList())
-    val coroutineScope = rememberCoroutineScope()
+fun AppNavigation(userDao: UserDao) {
+    val navController = rememberNavController()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    NavHost(
+        navController = navController,
+        startDestination = "WelcomeScreen"
     ) {
-        Text(
-            text = "VozInclusiva - Registro de Usuarios",
-            style = MaterialTheme.typography.titleLarge
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo Electrónico") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = {
-                if (name.isNotBlank() && email.isNotBlank()) {
-                    coroutineScope.launch {
-                        userDao.insertUser(User(name = name, email = email))
-                        name = ""
-                        email = ""
+        // 1. Pantalla de Inicio de Sesión
+        composable("WelcomeScreen") {
+            WelcomeScreen(
+                userDao = userDao,
+                onLoginSuccess = {
+                    navController.navigate("menuScreen") {
+                        popUpTo("WelcomeScreen"){
+                            inclusive = true
+                        }
                     }
+                },
+                onRegisterClick = {
+                    navController.navigate("userScreen")
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Guardar Usuario")
+            )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        // 2. Pantalla de Registro
+        composable("userScreen") {
+            UserScreen(
+                userDao = userDao,
+                onBackClick = { navController.popBackStack() }
+            )
+        }
 
-        Text(
-            text = "Usuarios Guardados en Base de Datos:",
-            style = MaterialTheme.typography.titleMedium
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LazyColumn {
-            items(userList) { user ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text(text = "ID: ${user.id} - ${user.name}", style = MaterialTheme.typography.bodyLarge)
-                        Text(text = user.email, style = MaterialTheme.typography.bodyMedium)
-                    }
+        // 3. Menú Principal
+        composable("menuScreen") {
+            MenuScreen(
+                onCategorySelected = { categoryTitle ->
+                    navController.navigate("detailScreen/$categoryTitle")
                 }
+            )
+        }
+
+        // 4. Detalle
+        composable("detailScreen/{categoryTitle}") { backStackEntry ->
+            val categoryTitle = backStackEntry.arguments?.getString("categoryTitle") ?: "SALUD"
+            val options = when (categoryTitle) {
+                "SALUD" -> listOf("Me siento mal", "Necesito un médico", "Pastillas para el dolor", "Emergencia")
+                "ESTUDIO" -> listOf("No entiendo la tarea", "¿Dónde queda el salón?", "Necesito un libro", "Profesor, una duda")
+                "TRÁMITE" -> listOf("Quiero sacar un turno", "¿Dónde formo fila?", "Necesito ayuda con este documento", "Pagar servicio")
+                "COMPRA" -> listOf("¿Cuánto cuesta?", "Quiero comprar esto", "¿Aceptan tarjeta?", "Bolsa por favor")
+                "ESCRIBIR" -> listOf("Escribir mensaje personalizado...")
+                else -> listOf("Hola", "Gracias", "Por favor", "Adiós")
             }
+
+            DetailScreen(
+                categoryTitle = categoryTitle,
+                options = options,
+                onBackClick = { navController.popBackStack() },
+                onOptionClick = { _ -> }
+            )
         }
     }
 }
