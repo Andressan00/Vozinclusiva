@@ -1,5 +1,6 @@
-package com.example.vozinclusiva
+package com.example.vozinclusiva.ui.settings
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,14 +10,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.auth.FirebaseAuth
 
 data class CategoryItem(val title: String, val color: Color)
 
 @Composable
-fun MenuScreen(onCategorySelected: (String) -> Unit) {
+fun MenuScreen(
+    auth: FirebaseAuth,
+    onCategorySelected: (String) -> Unit,
+    onLogout: () -> Unit
+) {
     val categories = listOf(
         CategoryItem("SALUD", Color(0xFFFF9501)),
         CategoryItem("ESTUDIO", Color(0xFFFF3B2F)),
@@ -25,6 +32,9 @@ fun MenuScreen(onCategorySelected: (String) -> Unit) {
         CategoryItem("ESCRIBIR", Color(0xFF5855D6)),
         CategoryItem("FRASES RÁPIDAS", Color(0xFF8F8E94))
     )
+
+    val context = LocalContext.current
+    val userEmail = auth.currentUser?.email
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -36,7 +46,38 @@ fun MenuScreen(onCategorySelected: (String) -> Unit) {
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Barra superior con usuario actual y botón cerrar sesión
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = userEmail ?: "Sesión activa",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    maxLines = 1
+                )
+
+                TextButton(
+                    onClick = {
+                        auth.signOut()
+                        Toast.makeText(context, "Sesión cerrada", Toast.LENGTH_SHORT).show()
+                        onLogout()
+                    }
+                ) {
+                    Text(
+                        text = "Cerrar sesión",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
                 text = "SEÑA",

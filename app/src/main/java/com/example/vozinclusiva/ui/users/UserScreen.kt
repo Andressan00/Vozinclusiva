@@ -1,37 +1,36 @@
-package com.example.vozinclusiva
+package com.example.vozinclusiva.ui.users
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.vozinclusiva.data.local.dao.UserDao
-import com.example.vozinclusiva.data.local.model.User
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @Composable
 fun UserScreen(
-    userDao: UserDao,
+    auth: FirebaseAuth,
+    onRegisterSuccess: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-    var isError by remember { mutableStateOf(false) }
-
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-
-    val userList by userDao.getAllUsers()
-        .collectAsState(initial = emptyList())
+    val context = LocalContext.current
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -40,17 +39,14 @@ fun UserScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.clickable { onBackClick() }
             ) {
-                Text(
-                    text = "◀",
-                    fontSize = 18.sp,
-                    color = Color(0xFF0080F0)
-                )
+                Text(text = "◀", fontSize = 18.sp, color = Color(0xFF0080F0))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Volver",
@@ -60,128 +56,73 @@ fun UserScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "Registro de Nuevo Usuario",
-                style = MaterialTheme.typography.titleLarge
+                text = "Registrarse",
+                style = MaterialTheme.typography.headlineLarge
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Nombre") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = { Text("Correo Electrónico") },
+                label = { Text("Email") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
-                visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            errorMessage?.let { msg ->
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = msg, color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = {
-                    if (
-                        name.isBlank() ||
-                        email.isBlank() ||
-                        password.isBlank()
-                    ) {
-                        isError = true
-                        message = "Completa todos los campos"
-                    } else {
-                        coroutineScope.launch {
-                            try {
-                                userDao.insertUser(
-                                    User(
-                                        name = name.trim(),
-                                        email = email.trim(),
-                                        password = password
-                                    )
-                                )
-
-                                name = ""
-                                email = ""
-                                password = ""
-                                isError = false
-                                message = "Usuario registrado correctamente"
-                            } catch (e: Exception) {
-                                isError = true
-                                message = "No se pudo guardar el usuario: ${e.localizedMessage}"
-                            }
+                    errorMessage = null
+                    if (email.isBlank() || password.isBlank()) {
+                        errorMessage = "Por favor, introduce email y contraseña."
+                        return@Button
+                    }
+                    if (password.length < 6) {
+                        errorMessage = "La contraseña debe tener al menos 6 caracteres."
+                        return@Button
+                    }
+                    coroutineScope.launch {
+                        isLoading = true
+                        try {
+                            auth.createUserWithEmailAndPassword(email.trim(), password).await()
+                            Toast.makeText(context, "Registro exitoso", Toast.LENGTH_SHORT).show()
+                            onRegisterSuccess()
+                        } catch (e: Exception) {
+                            val mensaje = e.message ?: "Error al registrar usuario."
+                            errorMessage = mensaje
+                            Toast.makeText(context, "Error: $mensaje", Toast.LENGTH_LONG).show()
+                        } finally {
+                            isLoading = false
                         }
                     }
                 },
+                enabled = !isLoading,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar Usuario")
-            }
-
-            if (message.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = message,
-                    color = if (isError) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        Color(0xFF16803D)
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Usuarios Registrados:",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(userList) { user ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp)
-                        ) {
-                            Text(
-                                text = "Nombre: ${user.name}",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Text(
-                                text = "Correo: ${user.email}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                }
+                Text(if (isLoading) "Registrando..." else "Registrar")
             }
         }
     }

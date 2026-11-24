@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "749627010659",
+    "project_id": "vozinclusiva-65481",
+    "storage_bucket": "vozinclusiva-65481.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749627010659:android:5dae296064b0a083059256",
+        "android_client_info": {
+          "package_name": "com.example.vozinclusiva"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRI2ylu-GVGYC7fHPSm-rt0yVNc9U8oJA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
