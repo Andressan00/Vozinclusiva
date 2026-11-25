@@ -9,13 +9,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.vozinclusiva.data.repository.MessageHistoryRepository
+import com.example.vozinclusiva.data.repository.UserProfileRepository
+import com.example.vozinclusiva.ui.components.rememberSpeechController
 import com.example.vozinclusiva.ui.settings.DetailScreen
 import com.example.vozinclusiva.ui.settings.MenuScreen
 import com.example.vozinclusiva.ui.settings.WelcomeScreen
+import com.example.vozinclusiva.ui.users.ProfileScreen // NUEVO
 import com.example.vozinclusiva.ui.users.UserScreen
+import com.example.vozinclusiva.ui.users.WriteScreen
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
@@ -80,8 +86,13 @@ fun AppNavigation(auth: FirebaseAuth) {
             MenuScreen(
                 auth = auth,
                 onCategorySelected = { categoryTitle ->
-                    navController.navigate("detailScreen/$categoryTitle")
+                    if (categoryTitle == "ESCRIBIR") {
+                        navController.navigate("writeScreen") // NUEVO
+                    } else {
+                        navController.navigate("detailScreen/$categoryTitle")
+                    }
                 },
+                onProfile = { navController.navigate("profileScreen") }, // NUEVO
                 onLogout = {
                     navController.navigate("WelcomeScreen") {
                         popUpTo("menuScreen") { inclusive = true }
@@ -102,12 +113,45 @@ fun AppNavigation(auth: FirebaseAuth) {
                 else -> listOf("Hola", "Gracias", "Por favor", "Adiós")
             }
 
+            // NUEVO: lee en voz alta, por el parlante del teléfono, la frase que se toque
+            val context = LocalContext.current
+            val speech = rememberSpeechController()
+
             DetailScreen(
                 categoryTitle = categoryTitle,
                 options = options,
-                onBackClick = { navController.popBackStack() },
-                onOptionClick = { _ -> }
+                onBackClick = {
+                    speech.stop()
+                    navController.popBackStack()
+                },
+                onOptionClick = { option ->
+                    val textToSpeak: String? = when {
+                        // Esta opción es para escribir; no tiene sentido leerla tal cual
+                        option.startsWith("Escribir mensaje") -> null
+                        // En emergencia, además de la frase, lee los datos guardados del perfil
+                        option.equals("Emergencia", ignoreCase = true) -> {
+                            val profile = UserProfileRepository(context).load()
+                            "Emergencia. Necesito ayuda urgente." +
+                                    (profile?.let { " " + it.toReadableText() } ?: "")
+                        }
+                        else -> option
+                    }
+                    textToSpeak?.let {
+                        speech.speak(it)
+                        MessageHistoryRepository(context).add(option) // NUEVO: historial
+                    }
+                }
             )
+        }
+
+        // 6. Escribir mensaje y reproducirlo en voz alta (NUEVO)
+        composable("writeScreen") {
+            WriteScreen(onBack = { navController.popBackStack() })
+        }
+
+        // 5. Mi perfil (datos básicos guardados localmente + lectura en voz alta) NUEVO
+        composable("profileScreen") {
+            ProfileScreen(onBack = { navController.popBackStack() })
         }
     }
 }

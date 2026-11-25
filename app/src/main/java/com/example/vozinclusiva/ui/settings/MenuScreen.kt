@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
@@ -22,6 +23,7 @@ data class CategoryItem(val title: String, val color: Color)
 fun MenuScreen(
     auth: FirebaseAuth,
     onCategorySelected: (String) -> Unit,
+    onProfile: () -> Unit,          // NUEVO: abre la pantalla "Mi perfil"
     onLogout: () -> Unit
 ) {
     val categories = listOf(
@@ -48,7 +50,7 @@ fun MenuScreen(
         ) {
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Barra superior con usuario actual y botón cerrar sesión
+            // Barra superior con usuario actual, perfil y cerrar sesión
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -58,8 +60,20 @@ fun MenuScreen(
                     text = userEmail ?: "Sesión activa",
                     fontSize = 12.sp,
                     color = Color.Gray,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
+
+                // NUEVO
+                TextButton(onClick = onProfile) {
+                    Text(
+                        text = "Mi perfil",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
                 TextButton(
                     onClick = {
